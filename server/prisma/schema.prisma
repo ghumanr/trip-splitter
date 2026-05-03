@@ -8,53 +8,91 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
-  passwordHash String
-  createdAt    DateTime      @default(now())
-
-  tripsCreated Trip[]        @relation("TripsCreated")
-  tripMembers  TripMember[]
-  expensesPaid Expense[]     @relation("ExpensesPaid")
+  id               String         @id @default(uuid())
+  name             String
+  email            String         @unique
+  passwordHash     String?
+  createdAt        DateTime       @default(now())
+  tripsCreated     Trip[]         @relation("TripsCreated")
+  tripMembers      TripMember[]
+  expensesPaid     Expense[]      @relation("ExpensesPaid")
+  expenseSplits    ExpenseSplit[]
+  paymentsSent     Payment[]      @relation("PaymentsSent")
+  paymentsReceived Payment[]      @relation("PaymentsReceived")
 }
 
 model Trip {
   id          String       @id @default(uuid())
   title       String
   description String?
+  destination String?
+  startDate   DateTime?
+  endDate     DateTime?
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   createdById String
-
-  createdBy   User         @relation("TripsCreated", fields: [createdById], references: [id])
+  createdBy   User         @relation("TripsCreated", fields: [createdById], references: [id], onDelete: Cascade)
   members     TripMember[]
   expenses    Expense[]
+  payments    Payment[]
 }
 
 model TripMember {
   id       String   @id @default(uuid())
-  tripId    String
-  userId    String
-  role      String   @default("member")
-  joinedAt  DateTime @default(now())
-
-  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripId   String
+  userId   String
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+  trip     Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, userId])
 }
 
-model Expense {
-  id           String    @id @default(uuid())
-  tripId        String
-  paidByUserId  String
-  title         String
-  amount        Decimal   @db.Decimal(10, 2)
-  category      String
-  expenseDate   DateTime
-  notes         String?
-  createdAt     DateTime  @default(now())
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  color    String
+  expenses Expense[]
+}
 
-  trip          Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  paidBy        User      @relation("ExpensesPaid", fields: [paidByUserId], references: [id])
+model Expense {
+  id           String         @id @default(uuid())
+  tripId       String
+  paidByUserId String
+  categoryId   String
+  title        String
+  amount       Decimal        @db.Decimal(10, 2)
+  expenseDate  DateTime
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  trip         Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy       User           @relation("ExpensesPaid", fields: [paidByUserId], references: [id], onDelete: Cascade)
+  category     Category       @relation(fields: [categoryId], references: [id])
+  splits       ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id        String  @id @default(uuid())
+  expenseId String
+  userId    String
+  amount    Decimal @db.Decimal(10, 2)
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  tripId     String
+  fromUserId String
+  toUserId   String
+  amount     Decimal  @db.Decimal(10, 2)
+  note       String?
+  paidAt     DateTime @default(now())
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  fromUser   User     @relation("PaymentsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("PaymentsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
 }

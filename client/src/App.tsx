@@ -5,15 +5,21 @@ import DashboardPage from "./pages/DashboardPage";
 import CreateTripPage from "./pages/CreateTripPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
 import AppLayout from "./layout/AppLayout";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/useAuth";
 
 function App() {
   const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/register"
+        element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />}
+      />
 
       <Route
         path="/"
@@ -25,6 +31,7 @@ function App() {
         <Route path="trips/new" element={<CreateTripPage />} />
         <Route path="trips/:tripId" element={<TripDetailsPage />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -6,13 +6,19 @@ dotenv.config();
 
 const tripsRouter = require("./routes/trips");
 const expensesRouter = require("./routes/expenses");
+const authRouter = require("./routes/auth");
+const categoriesRouter = require("./routes/categories");
 
 const app = express();
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -20,8 +26,21 @@ app.get("/", (req, res) => {
   res.json({ message: "TripSplitter API is running" });
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api/trips", tripsRouter);
 app.use("/api/expenses", expensesRouter);
+app.use("/api/categories", categoriesRouter);
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  console.error(error);
+  return res.status(error.status || 500).json({
+    error: error.message || "Something went wrong",
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 

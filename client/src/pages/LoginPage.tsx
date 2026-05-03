@@ -1,59 +1,90 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from "../contexts/useAuth";
 
 function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
+
     try {
       await login(email, password);
       navigate("/");
-    } catch (error) {
-      // Handle login error
-      console.error('Login failed:', error);
+    } catch {
+      setError("Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow rounded-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
-          TripSplitter
-        </h1>
+    <div className="app-shell px-4 py-10">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="text-slate-950">
+          <p className="text-sm font-bold uppercase tracking-[0.4em] text-cyan-600">
+            TripSplitter
+          </p>
+          <h1 className="mt-5 text-5xl font-black tracking-tight sm:text-7xl">
+            Split group trips clearly.
+          </h1>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+            Track travelers, shared expenses, automatic equal splits, payments, and balances.
+          </p>
+        </section>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full border rounded-lg px-4 py-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <section className="glass-panel-strong rounded-[2rem] p-8">
+          <h2 className="text-3xl font-bold text-slate-950">Welcome back</h2>
+          <p className="mt-2 text-sm text-slate-500">Log in to manage your trips.</p>
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full border rounded-lg px-4 py-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          {error ? (
+            <div className="mt-5 rounded-2xl border border-red-200/70 bg-red-50/80 p-3 text-sm font-semibold text-red-700 backdrop-blur">
+              {error}
+            </div>
+          ) : null}
 
-          <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-            Login
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <input
+              type="email"
+              placeholder="Email"
+              className="field"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-        <p className="mt-4 text-sm text-center">
-          Do not have an account?{" "}
-          <Link to="/register" className="text-blue-600 font-medium">
-            Register
-          </Link>
-        </p>
+            <input
+              type="password"
+              placeholder="Password"
+              className="field"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="primary-button w-full py-3"
+            >
+              {loading ? "Logging in..." : "Log in"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-slate-600">
+            Need an account?{" "}
+            <Link to="/register" className="font-bold text-cyan-700">
+              Create one
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );

@@ -6,26 +6,29 @@ type BalanceSummaryProps = {
 
 function BalanceSummary({ balances }: BalanceSummaryProps) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow">
-      <h3 className="text-2xl font-semibold mb-4">Balances</h3>
+    <div className="glass-panel-strong rounded-[2rem] p-6">
+      <h3 className="text-2xl font-bold text-slate-950">Balances</h3>
 
-      <div className="space-y-3">
+      <div className="mt-5 space-y-3">
         {balances.map((item) => (
           <div
-            key={item.user}
-            className="flex justify-between border-b pb-2 last:border-b-0"
+            key={item.user.id}
+            className="soft-card flex items-center justify-between rounded-2xl p-4"
           >
-            <span>{item.user}</span>
+            <div>
+              <p className="font-bold text-slate-950">{item.user.name}</p>
+              <p className="text-xs text-slate-500">{item.user.email}</p>
+            </div>
             <span
               className={
                 item.balance >= 0
-                  ? "text-green-600 font-semibold"
-                  : "text-red-500 font-semibold"
+                  ? "font-black text-emerald-600"
+                  : "font-black text-red-500"
               }
             >
               {item.balance >= 0
-                ? `+$${item.balance}`
-                : `-$${Math.abs(item.balance)}`}
+                ? `+$${item.balance.toFixed(2)}`
+                : `-$${Math.abs(item.balance).toFixed(2)}`}
             </span>
           </div>
         ))}
