@@ -100,7 +100,14 @@ function DashboardPage() {
       {trips.length ? (
         <div className="grid gap-5 xl:grid-cols-2">
           {trips.map((trip) => (
-            <TripCard key={trip.id} trip={trip} />
+            <TripCard
+              key={trip.id}
+              trip={trip}
+              onDelete={async (tripId) => {
+                await api.delete(`/trips/${tripId}`);
+                setTrips((prev) => prev.filter((t) => t.id !== tripId));
+              }}
+            />
           ))}
         </div>
       ) : (

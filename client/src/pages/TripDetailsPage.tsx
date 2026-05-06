@@ -25,9 +25,7 @@ function TripDetailsPage() {
   const [error, setError] = useState("");
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
-  const [paymentFrom, setPaymentFrom] = useState("");
-  const [paymentTo, setPaymentTo] = useState("");
-  const [paymentAmount, setPaymentAmount] = useState("");
+  const [recordingPaymentKey, setRecordingPaymentKey] = useState<string | null>(null);
   const [expenseForm, setExpenseForm] = useState<ExpenseForm>({
     title: "",
     amount: "",
@@ -60,13 +58,6 @@ function TripDetailsPage() {
           paidByUserId: currentMember?.user.id || fallbackMember?.user.id || "",
           category: categoriesResponse.data[0]?.name || "Food",
         }));
-        setPaymentFrom(tripResponse.data.settlements[0]?.from.id || "");
-        setPaymentTo(tripResponse.data.settlements[0]?.to.id || "");
-        setPaymentAmount(
-          tripResponse.data.settlements[0]?.amount
-            ? String(tripResponse.data.settlements[0].amount)
-            : ""
-        );
       } catch {
         setError("Could not load this trip.");
       } finally {
@@ -121,23 +112,26 @@ function TripDetailsPage() {
     }
   };
 
-  const submitPayment = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaving(true);
+  const recordSettlementPayment = async (
+    fromUserId: string,
+    toUserId: string,
+    amount: number,
+    key: string
+  ) => {
+    setRecordingPaymentKey(key);
     setError("");
 
     try {
       const response = await api.post(`/trips/${tripId}/payments`, {
-        fromUserId: paymentFrom,
-        toUserId: paymentTo,
-        amount: paymentAmount,
+        fromUserId,
+        toUserId,
+        amount,
       });
       setTrip(response.data);
-      setPaymentAmount("");
     } catch {
       setError("Could not record payment.");
     } finally {
-      setSaving(false);
+      setRecordingPaymentKey(null);
     }
   };
 
@@ -309,83 +303,6 @@ function TripDetailsPage() {
           <BalanceSummary balances={trip.balances} />
 
           <div className="glass-panel-strong rounded-[2rem] p-6">
-            <h3 className="text-2xl font-bold text-slate-950">Settle Up</h3>
-            <div className="mt-5 space-y-3">
-              {trip.settlements.length ? (
-                trip.settlements.map((settlement) => (
-                  <div
-                    key={`${settlement.from.id}-${settlement.to.id}-${settlement.amount}`}
-                    className="soft-card rounded-3xl p-4"
-                  >
-                    <p className="text-sm text-slate-600">
-                      <span className="font-bold text-slate-950">
-                        {settlement.from.name}
-                      </span>{" "}
-                      pays{" "}
-                      <span className="font-bold text-slate-950">
-                        {settlement.to.name}
-                      </span>
-                    </p>
-                    <p className="mt-1 text-2xl font-black text-cyan-600">
-                      ${settlement.amount.toFixed(2)}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="soft-card rounded-3xl p-4 text-sm text-slate-500">
-                  Everyone is settled.
-                </p>
-              )}
-            </div>
-
-            <form onSubmit={submitPayment} className="mt-5 space-y-3">
-              <select
-                className="field"
-                value={paymentFrom}
-                onChange={(e) => setPaymentFrom(e.target.value)}
-                required
-              >
-                <option value="">From</option>
-                {members.map((member) => (
-                  <option key={member.user.id} value={member.user.id}>
-                    {member.user.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="field"
-                value={paymentTo}
-                onChange={(e) => setPaymentTo(e.target.value)}
-                required
-              >
-                <option value="">To</option>
-                {members.map((member) => (
-                  <option key={member.user.id} value={member.user.id}>
-                    {member.user.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="Amount"
-                className="field"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                required
-              />
-              <button
-                type="submit"
-                disabled={saving || paymentFrom === paymentTo}
-                className="primary-button w-full px-5 py-3"
-              >
-                Record Payment
-              </button>
-            </form>
-          </div>
-
-          <div className="glass-panel-strong rounded-[2rem] p-6">
             <h3 className="text-2xl font-bold text-slate-950">Members</h3>
             <div className="mt-5 space-y-3">
               {members.map((member) => (
@@ -462,6 +379,65 @@ function TripDetailsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="glass-panel-strong rounded-[2rem] p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-slate-950">Settle Up</h3>
+          {trip.settlements.length > 0 && (
+            <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-bold text-cyan-700">
+              {trip.settlements.length} payment{trip.settlements.length !== 1 ? "s" : ""} needed
+            </span>
+          )}
+        </div>
+
+        {trip.settlements.length ? (
+          <div className="mt-5 divide-y divide-white/60">
+            {trip.settlements.map((settlement) => {
+              const key = `${settlement.from.id}-${settlement.to.id}-${settlement.amount}`;
+              const isRecording = recordingPaymentKey === key;
+              return (
+                <div
+                  key={key}
+                  className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-950">
+                      {settlement.from.name}
+                    </span>
+                    <span className="text-sm text-slate-500">pays</span>
+                    <span className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-950">
+                      {settlement.to.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl font-black text-cyan-600">
+                      ${settlement.amount.toFixed(2)}
+                    </span>
+                    <button
+                      disabled={isRecording || saving}
+                      onClick={() =>
+                        recordSettlementPayment(
+                          settlement.from.id,
+                          settlement.to.id,
+                          settlement.amount,
+                          key
+                        )
+                      }
+                      className="primary-button px-5 py-2 text-sm disabled:opacity-50"
+                    >
+                      {isRecording ? "Recording..." : "Record Payment"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-3xl bg-emerald-50 p-5 text-sm font-semibold text-emerald-700">
+            Everyone is settled up.
+          </p>
+        )}
       </div>
 
     </div>

@@ -3,10 +3,19 @@ import type { Trip } from "../types";
 
 type TripCardProps = {
   trip: Trip;
+  onDelete: (tripId: string) => void;
 };
 
-function TripCard({ trip }: TripCardProps) {
+function TripCard({ trip, onDelete }: TripCardProps) {
   const latestExpense = trip.expenses[0];
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`Delete "${trip.title}"? This cannot be undone.`)) {
+      onDelete(trip.id);
+    }
+  };
 
   return (
     <Link
@@ -45,10 +54,18 @@ function TripCard({ trip }: TripCardProps) {
         </div>
       </div>
 
-      <div className="mt-5 border-t border-white/60 pt-4 text-sm text-slate-500">
-        {latestExpense
-          ? `${latestExpense.title} was added for $${latestExpense.amount.toFixed(2)}`
-          : "No expenses yet"}
+      <div className="mt-5 flex items-center justify-between border-t border-white/60 pt-4">
+        <p className="text-sm text-slate-500">
+          {latestExpense
+            ? `${latestExpense.title} was added for $${latestExpense.amount.toFixed(2)}`
+            : "No expenses yet"}
+        </p>
+        <button
+          onClick={handleDelete}
+          className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-500 transition hover:bg-red-100 hover:text-red-700"
+        >
+          Delete
+        </button>
       </div>
     </Link>
   );

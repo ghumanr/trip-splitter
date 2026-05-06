@@ -1,6 +1,7 @@
 const express = require("express");
 const prisma = require("../prisma");
 const { formatTrip, getRequestUserId, getTripById, tripInclude } = require("../lib/trips");
+const { sendTripInviteEmail } = require("../lib/email");
 
 const router = express.Router();
 
@@ -135,7 +136,23 @@ router.post("/", async (req, res) => {
       });
     });
 
-    res.status(201).json(formatTrip(trip));
+    const formattedTrip = formatTrip(trip);
+
+    const addedMembers = formattedTrip.members.filter(
+      (m) => m.user.id !== owner.id
+    );
+
+    for (const member of addedMembers) {
+      sendTripInviteEmail({
+        toEmail: member.user.email,
+        toName: member.user.name,
+        tripTitle: formattedTrip.title,
+        destination: formattedTrip.destination,
+        addedByName: owner.name,
+      });
+    }
+
+    res.status(201).json(formattedTrip);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create trip" });
@@ -189,6 +206,19 @@ router.post("/:tripId/members", async (req, res) => {
     });
 
     const fullTrip = await getTripById(tripId);
+
+    const addedByUserId = getRequestUserId(req);
+    const addedBy = addedByUserId
+      ? await prisma.user.findUnique({ where: { id: addedByUserId } })
+      : null;
+
+    sendTripInviteEmail({
+      toEmail: user.email,
+      toName: user.name,
+      tripTitle: trip.title,
+      destination: trip.destination,
+      addedByName: addedBy?.name || "Someone",
+    });
 
     res.status(201).json(fullTrip);
   } catch (error) {
